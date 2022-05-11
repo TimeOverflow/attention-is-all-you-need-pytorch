@@ -9,6 +9,7 @@ __author__ = "Yu-Hsiang Huang"
 
 
 def get_pad_mask(seq, pad_idx):
+    # b x 1 x L，后面会进行扩展，这里没问题
     return (seq != pad_idx).unsqueeze(-2)
 
 
@@ -17,7 +18,7 @@ def get_subsequent_mask(seq):
     sz_b, len_s = seq.size()
     subsequent_mask = (1 - torch.triu(
         torch.ones((1, len_s, len_s), device=seq.device), diagonal=1)).bool()
-    return subsequent_mask
+    return subsequent_mask  # 1 x len_s x len_s
 
 
 class PositionalEncoding(nn.Module):
@@ -39,7 +40,7 @@ class PositionalEncoding(nn.Module):
         sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2])  # dim 2i
         sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # dim 2i+1
 
-        return torch.FloatTensor(sinusoid_table).unsqueeze(0)
+        return torch.FloatTensor(sinusoid_table).unsqueeze(0)  # 1 x L x d_model
 
     def forward(self, x):
         return x + self.pos_table[:, :x.size(1)].clone().detach()
@@ -193,6 +194,6 @@ class Transformer(nn.Module):
         dec_output, *_ = self.decoder(trg_seq, trg_mask, enc_output, src_mask)
         seq_logit = self.trg_word_prj(dec_output)
         if self.scale_prj:
-            seq_logit *= self.d_model ** -0.5
+            seq_logit *= self.d_model ** -0.5  # b x L x n_src_vocab
 
-        return seq_logit.view(-1, seq_logit.size(2))
+        return seq_logit.view(-1, seq_logit.size(2))  # BL x n_src_vocab
